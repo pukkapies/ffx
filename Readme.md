@@ -42,7 +42,7 @@ Presently, the FFX Python module only exposes a single API method, `ffx.run()`.
 
 
 ## Dependencies
-* python (tested on 2.5, 2.6, and 2.7)
+* python (tested on 2.5, 2.6, 2.7, 3.4 and 3.5)
 * numpy (1.6.0+)
 * scipy (0.9.0+) 
 * scikit-learn (0.9+)
