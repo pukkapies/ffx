@@ -75,7 +75,7 @@ def _approachStr(approach):
 class FFXBuildStrategy(object):
     """All parameter settings.  Put magic numbers here."""
     
-    def __init__(self, approach):
+    def __init__(self, approach, hyper={}):
         """
         @arguments
           approach -- 5-d list of [use_inter, use_denom, use_expon, use_nonlin, use_thresh]
@@ -104,6 +104,8 @@ class FFXBuildStrategy(object):
 
         #will use all if 'expon1', else [1.0]
         self.all_expr_exponents = [-1.0, -0.5, +0.5, +1.0]
+
+        self.__dict__.update(**hyper)
 
     def includeInteractions(self):
         return bool(self.approach[0])
@@ -415,7 +417,7 @@ class ConstantModel:
 
 class MultiFFXModelFactory:
 
-    def build(self, train_X, train_y, test_X, test_y, varnames=None, verbose=False):
+    def build(self, train_X, train_y, test_X, test_y, varnames=None, verbose=False, hyper={}):
         """
         @description
           Builds FFX models at many different settings, then merges the results
@@ -477,7 +479,7 @@ class MultiFFXModelFactory:
                 print(('-' * 200))
                 print(('Build with approach %d/%d (%s): begin' % \
                       (i+1, len(approaches), _approachStr(approach))))
-            ss = FFXBuildStrategy(approach)
+            ss = FFXBuildStrategy(approach, hyper)
 
             next_models = FFXModelFactory().build(train_X, train_y, ss, varnames, verbose)
 
@@ -545,8 +547,9 @@ class FFXModelFactory:
           models -- list of FFXModel -- Pareto-optimal set of models
         """
         if pandas is not None and isinstance(X, pandas.DataFrame):
-            varnames = X.columns
+            varnames = list(X.columns)
             X = X.as_matrix()
+
         if isinstance(X, numpy.ndarray) and varnames == None:
             raise Exception('varnames required for numpy.ndarray')
             
