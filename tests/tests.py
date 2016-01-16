@@ -1,5 +1,6 @@
 import numpy as np
-import ffx, pandas
+import pandas
+import ffx
 from ffx.core import *
 
 def similar(a, b, eps):

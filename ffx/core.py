@@ -436,7 +436,7 @@ class MultiFFXModelFactory:
             varnames = train_X.columns
             train_X = train_X.as_matrix()
             test_X = test_X.as_matrix()
-        if isinstance(train_X, numpy.ndarray) and varnames == None:
+        if isinstance(train_X, numpy.ndarray) and varnames is None:
             raise Exception, 'varnames required for numpy.ndarray'
         
         if verbose:           
@@ -547,7 +547,7 @@ class FFXModelFactory:
         if pandas is not None and isinstance(X, pandas.DataFrame):
             varnames = X.columns
             X = X.as_matrix()
-        if isinstance(X, numpy.ndarray) and varnames == None:
+        if isinstance(X, numpy.ndarray) and varnames is None:
             raise Exception, 'varnames required for numpy.ndarray'
             
         if X.ndim == 1:
@@ -733,7 +733,7 @@ class FFXModelFactory:
         Returns list of model (or None if failure)."""
         if verbose:
             print '    Pathwise learn: begin. max_num_bases=%d' % max_num_bases
-        max_iter = 1000 #default 1000. magic number.
+        max_iter = 5000 #default 5000. magic number.
         
         #Condition X and y: 
         # -"unbias" = rescale so that (mean=0, stddev=1) -- subtract each row's mean, then divide by stddev
