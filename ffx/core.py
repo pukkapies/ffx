@@ -75,7 +75,7 @@ def _approachStr(approach):
 class FFXBuildStrategy(object):
     """All parameter settings.  Put magic numbers here."""
     
-    def __init__(self, approach):
+    def __init__(self, approach, hyper={}):
         """
         @arguments
           approach -- 5-d list of [use_inter, use_denom, use_expon, use_nonlin, use_thresh]
@@ -104,6 +104,8 @@ class FFXBuildStrategy(object):
 
         #will use all if 'expon1', else [1.0]
         self.all_expr_exponents = [-1.0, -0.5, +0.5, +1.0]
+
+        self.__dict__.update(**hyper)
 
     def includeInteractions(self):
         return bool(self.approach[0])
@@ -188,14 +190,14 @@ class FFXModel:
         #numerator
         y = numpy.zeros(N, dtype=float)
         y += self.coefs_n[0]
-        for (coef, base) in itertools.izip(self.coefs_n[1:], self.bases_n):
+        for (coef, base) in zip(self.coefs_n[1:], self.bases_n):
             y += coef * base.simulate(X)
 
         #denominator
         if self.bases_d:
             denom_y = numpy.zeros(N, dtype=float)
             denom_y += 1.0
-            for (coef, base) in itertools.izip(self.coefs_d, self.bases_d):
+            for (coef, base) in zip(self.coefs_d, self.bases_d):
                 denom_y += coef * base.simulate(X)
             y /= denom_y
             
@@ -211,7 +213,7 @@ class FFXModel:
         #numerator
         if include_denom and len(self.coefs_n)>1: s += '('
         numer_s = ['%s' % coefStr(self.coefs_n[0])]
-        for (coef, base) in itertools.izip(self.coefs_n[1:], self.bases_n):
+        for (coef, base) in zip(self.coefs_n[1:], self.bases_n):
             numer_s += ['%s*%s' % (coefStr(coef), base)]
         s += ' + '.join(numer_s)
         if include_denom and len(self.coefs_n)>1: s += ')'
@@ -220,13 +222,13 @@ class FFXModel:
         if self.bases_d:
             s += ' / ('
             denom_s = ['1.0']
-            for (coef, base) in itertools.izip(self.coefs_d, self.bases_d):
+            for (coef, base) in zip(self.coefs_d, self.bases_d):
                 denom_s += ['%s*%s' % (coefStr(coef), base)]
             s += ' + '.join(denom_s)
             s += ')'
             
         #change xi to actual variable names
-        for var_i in xrange(len(self.varnames)-1, -1, -1):
+        for var_i in range(len(self.varnames)-1, -1, -1):
             s = s.replace('x%d' % var_i, self.varnames[var_i])
         s = s.replace('+ -', '- ')
             
@@ -415,7 +417,7 @@ class ConstantModel:
 
 class MultiFFXModelFactory:
 
-    def build(self, train_X, train_y, test_X, test_y, varnames=None, verbose=False):
+    def build(self, train_X, train_y, test_X, test_y, varnames=None, verbose=False, hyper={}):
         """
         @description
           Builds FFX models at many different settings, then merges the results
@@ -436,11 +438,11 @@ class MultiFFXModelFactory:
             varnames = train_X.columns
             train_X = train_X.as_matrix()
             test_X = test_X.as_matrix()
-        if isinstance(train_X, numpy.ndarray) and varnames is None:
-            raise Exception, 'varnames required for numpy.ndarray'
+        if isinstance(train_X, numpy.ndarray) and varnames == None:
+            raise Exception('varnames required for numpy.ndarray')
         
         if verbose:           
-            print 'Build(): begin. {2} variables, {1} training samples, {0} test samples'.format(test_X.shape[0], *train_X.shape)
+            print(('Build(): begin. {2} variables, {1} training samples, {0} test samples'.format(test_X.shape[0], *train_X.shape)))
         
         models = []
         min_y = min(min(train_y), min(test_y))
@@ -450,10 +452,10 @@ class MultiFFXModelFactory:
         # and (b) too many features at once
         approaches = []
         if verbose:
-            print "Learning Approaches Considered:"
-            print "========================================="
-            print "Inter   Denom   Expon   Nonlin  Threshold"
-            print "========================================="
+            print("Learning Approaches Considered:")
+            print("=========================================")
+            print("Inter   Denom   Expon   Nonlin  Threshold")
+            print("=========================================")
         if CONSIDER_INTER: inters = [1] #inter=0 is a subset of inter=1
         else:              inters = [0]
         for inter in inters: 
@@ -470,14 +472,14 @@ class MultiFFXModelFactory:
                             if sum(approach) >= 4: continue #not too many features at once
                             approaches.append(approach)
                             if verbose:
-                                print '\t'.join(['Yes' if a else 'No' for a in approach]) #"  ", _approachStr(approach)
+                                print(('\t'.join(['Yes' if a else 'No' for a in approach]))) #"  ", _approachStr(approach)
 
         for (i, approach) in enumerate(approaches): 
             if verbose:
-                print '-' * 200
-                print 'Build with approach %d/%d (%s): begin' % \
-                      (i+1, len(approaches), _approachStr(approach))
-            ss = FFXBuildStrategy(approach)
+                print(('-' * 200))
+                print(('Build with approach %d/%d (%s): begin' % \
+                      (i+1, len(approaches), _approachStr(approach))))
+            ss = FFXBuildStrategy(approach, hyper)
 
             next_models = FFXModelFactory().build(train_X, train_y, ss, varnames, verbose)
 
@@ -488,27 +490,27 @@ class MultiFFXModelFactory:
 
             #pareto filter
             if verbose:
-                print '  STEP 3: Nondominated filter'
+                print('  STEP 3: Nondominated filter')
             next_models = self._nondominatedModels(next_models)
             models += next_models
             if verbose:
-                print 'Build with approach %d/%d (%s): done.  %d model(s).' % \
-                    (i+1, len(approaches), _approachStr(approach), len(next_models))
-                print 'Models:'
+                print(('Build with approach %d/%d (%s): done.  %d model(s).' % \
+                    (i+1, len(approaches), _approachStr(approach), len(next_models))))
+                print('Models:')
                 for model in next_models:
-                    print "num_bases=%d, test_nmse=%.6f, model=%s" % \
-                        (model.numBases(), model.test_nmse, model.str2(500))
+                    print(("num_bases=%d, test_nmse=%.6f, model=%s" % \
+                        (model.numBases(), model.test_nmse, model.str2(500))))
 
         #final pareto filter
         models = self._nondominatedModels(models)
 
         #log nondominated models
         if verbose:
-            print '=' * 200
-            print '%d nondominated models (wrt test error & num. bases):' % len(models)
+            print(('=' * 200))
+            print(('%d nondominated models (wrt test error & num. bases):' % len(models)))
             for (i, model) in enumerate(models):
-                print "Nondom model %d/%d: num_bases=%d, test_nmse=%.6f, model=%s" % \
-                    (i+1, len(models), model.numBases(), model.test_nmse, model.str2(500))
+                print(("Nondom model %d/%d: num_bases=%d, test_nmse=%.6f, model=%s" % \
+                    (i+1, len(models), model.numBases(), model.test_nmse, model.str2(500))))
 
         return models
 
@@ -545,24 +547,25 @@ class FFXModelFactory:
           models -- list of FFXModel -- Pareto-optimal set of models
         """
         if pandas is not None and isinstance(X, pandas.DataFrame):
-            varnames = X.columns
+            varnames = list(X.columns)
             X = X.as_matrix()
-        if isinstance(X, numpy.ndarray) and varnames is None:
-            raise Exception, 'varnames required for numpy.ndarray'
+
+        if isinstance(X, numpy.ndarray) and varnames == None:
+            raise Exception('varnames required for numpy.ndarray')
             
         if X.ndim == 1:
             self.nrow, self.ncol = len(X), 1
         elif X.ndim == 2:
             self.nrow, self.ncol = X.shape
         else:
-            raise Exception, 'X is wrong dimensionality.'        
+            raise Exception('X is wrong dimensionality.')        
         
         y = numpy.asarray(y)
         if self.nrow != len(y):
-            raise Exception, 'X sample count and y sample count do not match'
+            raise Exception('X sample count and y sample count do not match')
         
         if self.ncol == 0:
-            print '  Corner case: no input vars, so return a ConstantModel'
+            print('  Corner case: no input vars, so return a ConstantModel')
             return [ConstantModel(y.mean(), 0)]
         
         #Main work... 
@@ -570,7 +573,7 @@ class FFXModelFactory:
         #build up each combination of all {var_i} x {op_j}, except for
         # when a combination is unsuccessful
         if verbose:
-            print '  STEP 1A: Build order-1 bases: begin'
+            print('  STEP 1A: Build order-1 bases: begin')
         order1_bases = []
         for var_i in range(self.ncol):
             for exponent in ss.exprExponents():
@@ -610,13 +613,13 @@ class FFXModelFactory:
                                 nonsimple_base.var = var_i #easy access when considering interactions
                                 order1_bases.append(nonsimple_base)
         if verbose:
-            print '  STEP 1A: Build order-1 bases: done.  Have %d order-1 bases.' % len(order1_bases)
+            print(('  STEP 1A: Build order-1 bases: done.  Have %d order-1 bases.' % len(order1_bases)))
 
         var1_models = None
         if ss.includeInteractions():
             #find base-1 influences
             if verbose:
-                print '  STEP 1B: Find order-1 base infls: begin'
+                print('  STEP 1B: Find order-1 base infls: begin')
             max_num_bases = len(order1_bases) #no limit
             target_train_nmse = 0.01
             models = self._basesToModels(
@@ -638,7 +641,7 @@ class FFXModelFactory:
             I = numpy.argsort(-1 * order1_infls)
             order1_bases = [order1_bases[i] for i in I] 
             if verbose:
-                print '  STEP 1B: Find order-1 base infls: done'
+                print('  STEP 1B: Find order-1 base infls: done')
 
             #don't let inter coeffs swamp linear ones; but handle more when n small
             n_order1_bases = len(order1_bases)
@@ -650,7 +653,7 @@ class FFXModelFactory:
             
             #build up order2 bases
             if verbose:
-                print '  STEP 1C: Build order-2 bases: begin'
+                print('  STEP 1C: Build order-2 bases: begin')
 
             #  -always have all xi*xi terms
             order2_bases = []
@@ -666,10 +669,10 @@ class FFXModelFactory:
                 order2_basetups.add(tup)
 
             # -then add other terms
-            for max_base_i in xrange(len(order1_bases)):
-                for i in xrange(max_base_i):
+            for max_base_i in range(len(order1_bases)):
+                for i in range(max_base_i):
                     basei = order1_bases[i]
-                    for j in xrange(max_base_i):
+                    for j in range(max_base_i):
                         if j >= i: continue #disallow mirror image
                         basej = order1_bases[j]
                         tup = (id(basei), id(basej))
@@ -683,18 +686,18 @@ class FFXModelFactory:
                 if len(order2_bases) >= max_n_order2_bases: break #for max_base_i
 
             if verbose:
-                print '  STEP 1C: Build order-2 bases: done.  Have %d order-2 bases.' % len(order2_bases)
+                print(('  STEP 1C: Build order-2 bases: done.  Have %d order-2 bases.' % len(order2_bases)))
             bases = order1_bases + order2_bases
         else:
             bases = order1_bases
 
         #all bases. Stop based on target nmse, not number of bases
         if verbose:
-            print '  STEP 2: Regress on all %d bases: begin.' % len(bases)
+            print(('  STEP 2: Regress on all %d bases: begin.' % len(bases)))
         var2_models = self._basesToModels(
             ss, varnames, bases, X, y, ss.final_max_num_bases, ss.final_target_train_nmse, verbose)
         if verbose:
-            print '  STEP 2: Regress on all %d bases: done.' % len(bases)
+            print(('  STEP 2: Regress on all %d bases: done.' % len(bases)))
 
         #combine models having 1-var with models having 2-vars
         if var1_models is None and var2_models is None:
@@ -732,8 +735,8 @@ class FFXModelFactory:
         Compute Elastic-Net path with coordinate descent.  
         Returns list of model (or None if failure)."""
         if verbose:
-            print '    Pathwise learn: begin. max_num_bases=%d' % max_num_bases
-        max_iter = 5000 #default 5000. magic number.
+            print(('    Pathwise learn: begin. max_num_bases=%d' % max_num_bases))
+        max_iter = 1000 #default 1000. magic number.
         
         #Condition X and y: 
         # -"unbias" = rescale so that (mean=0, stddev=1) -- subtract each row's mean, then divide by stddev
@@ -770,14 +773,14 @@ class FFXModelFactory:
             try:
                 clf.fit(X_unbiased, y_unbiased)
             except TimeoutError:
-                print '    Regularized update failed. Returning None'
+                print('    Regularized update failed. Returning None')
                 return None #failure
             except ValueError:
-                print '    Regularized update failed with ValueError.'
-                print '    X_unbiased:'
-                print X_unbiased
-                print '    y_unbiased:'
-                print y_unbiased
+                print('    Regularized update failed with ValueError.')
+                print('    X_unbiased:')
+                print(X_unbiased)
+                print('    y_unbiased:')
+                print(y_unbiased)
                 sys.exit(1)
 
             cur_unbiased_coefs = clf.coef_.copy()
@@ -805,28 +808,28 @@ class FFXModelFactory:
             #log
             num_bases = len(numpy.nonzero(cur_unbiased_coefs)[0])
             if verbose and ((alpha_i==0) or (alpha_i+1) % 50 == 0):
-                print '      alpha %d/%d (%3e): num_bases=%d, nmse=%.6f, time %.2f s' % \
-                    (alpha_i+1, len(alphas), alpha, num_bases, nmse_unbiased, time.time() - start_time)
+                print(('      alpha %d/%d (%3e): num_bases=%d, nmse=%.6f, time %.2f s' % \
+                    (alpha_i+1, len(alphas), alpha, num_bases, nmse_unbiased, time.time() - start_time)))
 
             #maybe stop
             if scipy.isinf(nmses[-1]):
                 if verbose:
-                    print '    Pathwise learn: Early stop because nmse is inf'
+                    print('    Pathwise learn: Early stop because nmse is inf')
                 return None
             if nmse_unbiased < target_nmse:
                 if verbose:
-                    print '    Pathwise learn: Early stop because nmse < target'
+                    print('    Pathwise learn: Early stop because nmse < target')
                 return models
             if num_bases > max_num_bases:
                 if verbose:
-                    print '    Pathwise learn: Early stop because num bases > %d' % max_num_bases
+                    print(('    Pathwise learn: Early stop because num bases > %d' % max_num_bases))
                 return models
             if len(nmses) > 15 and round(nmses[-1], 4) == round(nmses[-15], 4):
                 if verbose:
-                    print '    Pathwise learn: Early stop because nmses stagnated'
+                    print('    Pathwise learn: Early stop because nmses stagnated')
                 return models
         if verbose:
-            print '    Pathwise learn: done'
+            print('    Pathwise learn: done')
         return models
 
     def _allocateToNumerDenom(self, ss, bases, coefs):
@@ -835,14 +838,14 @@ class FFXModelFactory:
             assert 1+len(bases)+len(bases) == len(coefs) #offset + numer_bases + denom_bases
             n_bases = len(bases)
             coefs_n = [coefs[0]] + [coef for coef in coefs[1:n_bases+1] if coef != 0]
-            bases_n = [base for (base, coef) in itertools.izip(bases, coefs[1:n_bases+1]) if coef != 0]
+            bases_n = [base for (base, coef) in zip(bases, coefs[1:n_bases+1]) if coef != 0]
             coefs_d = [coef for coef in coefs[n_bases+1:] if coef != 0]
-            bases_d = [base for (base, coef) in itertools.izip(bases, coefs[n_bases+1:]) if coef != 0]
+            bases_d = [base for (base, coef) in zip(bases, coefs[n_bases+1:]) if coef != 0]
 
         else:
             assert 1+len(bases) == len(coefs) #offset + numer_bases + denom_bases
             coefs_n = [coefs[0]] + [coef for coef in coefs[1:] if coef != 0]
-            bases_n = [base for (base, coef) in itertools.izip(bases, coefs[1:]) if coef != 0]
+            bases_n = [base for (base, coef) in zip(bases, coefs[1:]) if coef != 0]
             coefs_d = []
             bases_d = []
 
@@ -912,7 +915,7 @@ def timeout(seconds_before_timeout):
                 signal.signal(signal.SIGALRM, old)
             signal.alarm(0)
             return result
-        new_f.func_name = f.func_name
+        new_f.__name__ = f.__name__
         return new_f
     return decorate
 
@@ -951,7 +954,7 @@ def nondominatedIndices2d(cost0s, cost1s):
     best_cost_index = I[0]
 
     nondom_locs = []
-    for i in xrange(n_points):
+    for i in range(n_points):
         loc = I[i] # traverse cost0s in ascending order
         if cost0s[loc] == best_cost[0]:
             if cost1s[loc] < best_cost[1]:

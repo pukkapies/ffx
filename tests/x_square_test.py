@@ -10,7 +10,11 @@ train_y = np.array([0, 1, 4, 9])
 test_X = np.array([[4, 5, 6, 7]]).T
 test_y = np.array([16, 25, 36, 49])
 
-models = ffx.run(train_X, train_y, test_X, test_y, ["x"])
+hyper = {"_l1_ratio": 1}
+
+
+models = ffx.run(train_X, train_y, test_X, test_y, ["x"], hyper=hyper)
+
 
 print('True model: y = x^2')
 print('Results:')
